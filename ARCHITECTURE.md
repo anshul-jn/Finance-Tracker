@@ -1,0 +1,461 @@
+# Smart Expense Tracker - Visual Guide & Architecture
+
+## 📐 Application Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   USER INTERFACE (Swing)                     │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              MainDashboard (JFrame)                    │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ Toolbar: Add | Edit | Delete | Filter | Export  │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │         Data Table (JTable)                      │  │ │
+│  │  │  ID | Amount | Category | Date | Description   │  │ │
+│  │  │  1  | $50.00 | Food     | Date | Lunch         │  │ │
+│  │  │  2  | $20.00 | Travel   | Date | Gas           │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │         Analytics Panel                         │  │ │
+│  │  │  Total: $1000  Monthly: $200  Category: Food   │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ Uses
+┌─────────────────────────────────────────────────────────────┐
+│                   BUSINESS LOGIC LAYER                       │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │           ExpenseDAO (Data Access Object)             │ │
+│  │  • addExpense()                                        │ │
+│  │  • getExpenseById()                                    │ │
+│  │  • updateExpense()                                     │ │
+│  │  • deleteExpense()                                     │ │
+│  │  • getExpensesByCategory()                             │ │
+│  │  • getTotalSpending()                                  │ │
+│  │  • getMonthlySpending()                                │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ Uses
+┌─────────────────────────────────────────────────────────────┐
+│                   MODEL LAYER                                │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │           Expense Class (Entity)                       │ │
+│  │  - id: int                                             │ │
+│  │  - amount: double                                      │ │
+│  │  - category: String                                    │ │
+│  │  - date: LocalDate                                     │ │
+│  │  - description: String                                 │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ Uses
+┌─────────────────────────────────────────────────────────────┐
+│                   DATA ACCESS LAYER                          │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │         DatabaseConnection (JDBC Manager)             │ │
+│  │  • getConnection()                                     │ │
+│  │  • initializeDatabase()                                │ │
+│  │  • testConnection()                                    │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ Uses
+┌─────────────────────────────────────────────────────────────┐
+│                   DATABASE LAYER                             │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              SQLite Database                           │ │
+│  │  ┌────────────────────────────────────────────────┐   │ │
+│  │  │ Expense Table                                 │   │ │
+│  │  │ id | amount | category | date | description  │   │ │
+│  │  │ 1  | 50.00  | Food     | ...  | Lunch        │   │ │
+│  │  │ 2  | 20.00  | Travel   | ...  | Gas          │   │ │
+│  │  └────────────────────────────────────────────────┘   │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔀 Data Flow Diagrams
+
+### Adding an Expense
+
+```
+┌─────────────────┐
+│  User Action    │
+│  Click "Add"    │
+└────────┬────────┘
+         ↓
+┌─────────────────────────────┐
+│ AddEditExpenseDialog Opens   │
+├─────────────────────────────┤
+│ Amount: [_____]             │
+│ Category: [Dropdown]        │
+│ Date: [Date Picker]         │
+│ Description: [TextArea]     │
+│ [Save] [Cancel]             │
+└────────┬────────────────────┘
+         ↓
+┌─────────────────────────┐
+│ User Fills & Clicks     │
+│ Save                    │
+└────────┬────────────────┘
+         ↓
+┌─────────────────────────┐
+│ Validation              │
+│ - Check amount > 0      │
+│ - Check description     │
+│ - Check date valid      │
+└────────┬────────────────┘
+         ↓
+┌─────────────────────────┐
+│ Create Expense Object   │
+│ new Expense(50, "Food", │
+│             date, desc) │
+└────────┬────────────────┘
+         ↓
+┌─────────────────────────┐
+│ ExpenseDAO.addExpense() │
+└────────┬────────────────┘
+         ↓
+┌──────────────────────────┐
+│ DatabaseConnection       │
+│ .getConnection()         │
+│ PreparedStatement        │
+│ INSERT INTO Expense...   │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ SQLite Database          │
+│ Row inserted             │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ Return Success           │
+│ Dialog closes            │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ refreshCallback()        │
+│ MainDashboard updates    │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ UI Updates               │
+│ - Table refreshes       │
+│ - Analytics update      │
+│ - Categories reload     │
+└──────────────────────────┘
+```
+
+---
+
+## 🗂️ Class Diagram (Simplified)
+
+```
+┌──────────────────────────┐
+│     <<main>>             │
+│  ExpenseTrackerApp       │
+│──────────────────────────│
+│ + main(args)             │
+└──────────┬───────────────┘
+           │ launches
+           ↓
+┌──────────────────────────┐      ┌──────────────────────────┐
+│    MainDashboard         │◄─────│ AddEditExpenseDialog     │
+│   extends JFrame         │      │  extends JDialog         │
+├──────────────────────────┤      ├──────────────────────────┤
+│ - expenseDAO: ExpenseDAO │      │ - expenseDAO: ExpenseDAO │
+│ - tableModel             │      │ - amountField            │
+│ - expensesTable          │      │ - categoryCombo          │
+│ - analyticsArea          │      │ - dateSpinner            │
+├──────────────────────────┤      │ - descriptionArea        │
+│ + refreshData()          │      ├──────────────────────────┤
+│ + loadExpensesIntoTable()│      │ + saveExpense()          │
+│ + applyFilter()          │      │ + validateInputs()       │
+│ + updateAnalytics()      │      │ + populateFields()       │
+│ + deleteSelectedExpense()│      └──────────────────────────┘
+│ + editSelectedExpense()  │
+│ + exportToCSV()          │
+└──────────┬───────────────┘
+           │ uses
+           ↓
+┌──────────────────────────┐
+│     ExpenseDAO           │
+├──────────────────────────┤
+│ + addExpense(Expense)    │
+│ + updateExpense(Expense) │
+│ + deleteExpense(id)      │
+│ + getExpenseById(id)     │
+│ + getAllExpenses()       │
+│ + getExpensesByCategory()│
+│ + getMonthlySpending()   │
+│ + getTotalSpending()     │
+└──────────┬───────────────┘
+           │ uses
+           ↓
+┌──────────────────────────┐
+│    Expense               │
+├──────────────────────────┤
+│ - id: int                │
+│ - amount: double         │
+│ - category: String       │
+│ - date: LocalDate        │
+│ - description: String    │
+├──────────────────────────┤
+│ + getId(): int           │
+│ + getAmount(): double    │
+│ + getCategory(): String  │
+│ + getDate(): LocalDate   │
+│ + getDescription()       │
+└──────────┬───────────────┘
+           │ uses
+           ↓
+┌──────────────────────────────┐
+│  DatabaseConnection          │
+├──────────────────────────────┤
+│ + getConnection()            │
+│ + initializeDatabase()       │
+│ + testConnection()           │
+└──────────────────────────────┘
+```
+
+---
+
+## 🔄 Use Case Diagram
+
+```
+                    ┌─────────────────────┐
+                    │      User           │
+                    └────────┬────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+         ↓                   ↓                   ↓
+    ┌─────────┐      ┌─────────────┐      ┌──────────┐
+    │   Add   │      │    View &   │      │ Analyze  │
+    │ Expense │      │   Manage    │      │ Spending │
+    └────┬────┘      └──────┬──────┘      └────┬─────┘
+         │                  │                   │
+    ┌────┴──────┐       ┌────┴────────┐    ┌───┴──────┐
+    │            │       │             │    │          │
+    ↓            ↓       ↓             ↓    ↓          ↓
+┌────────┐  ┌─────────┐ ┌────────┐ ┌──────────┐  ┌──────────┐
+│ Set    │  │ Filter  │ │ Edit   │ │ Category │  │ Monthly  │
+│ Amount │  │ Category│ │ Delete │ │ Summary  │  │ Summary  │
+└────┬───┘  └────┬────┘ └──┬─────┘ └────┬─────┘  └────┬─────┘
+     │           │          │            │             │
+     │           │          │ ┌──────────┘             │
+     │           │          │ │                        │
+     └───────────┼──────────┴─┴────────┬───────────────┘
+                 │                     │
+                 ↓                     ↓
+         ┌──────────────┐    ┌──────────────────┐
+         │  Save to DB  │    │ Export to CSV    │
+         └──────────────┘    └──────────────────┘
+```
+
+---
+
+## 🎬 Sequence Diagram: Adding Expense
+
+```
+User                Dialog              DAO               Database
+  │                  │                  │                   │
+  ├─ Click Add ─────→ │                  │                   │
+  │                  │                  │                   │
+  ├─ Fill Form ─────→ │                  │                   │
+  │                  │                  │                   │
+  ├─ Click Save ─────→ │                  │                   │
+  │                  ├─ Validate        │                   │
+  │                  ├─ Create Expense  │                   │
+  │                  ├─ addExpense() ───→│                   │
+  │                  │                  ├─ getConnection()───→
+  │                  │                  │                   │
+  │                  │                 ◄─── Connection ─────┤
+  │                  │                  ├─ INSERT SQL ──────→
+  │                  │                  │                   │
+  │                  │                 ◄─── Success ────────┤
+  │                  │                  │                   │
+  │◄───── Success ────┤                  │                   │
+  │                  │                  │                   │
+  ├─ Dialog Close ───→ │                  │                   │
+  │                  │                  │                   │
+  ├─ Refresh Data ────────────────→ getAllExpenses() ─────→
+  │                  │                  │                   │
+  │                  │                  │   SELECT * FROM
+  │                  │                  │◄─ Expense ────────┤
+  │                  │                  │                   │
+  │◄─── Data Updated ─┤                  │                   │
+  │                  │                  │                   │
+  └─ Display Table ──→ [Updated UI]      │                   │
+                                        
+```
+
+---
+
+## 📊 State Flow Diagram
+
+```
+┌─────────────────────┐
+│  Application Start  │
+└──────────┬──────────┘
+           │
+           ↓
+┌─────────────────────────────┐
+│ Initialize Database         │
+│ Create tables if missing    │
+└──────────┬──────────────────┘
+           │
+           ↓
+┌─────────────────────────────┐
+│ Load MainDashboard          │
+│ Create components           │
+└──────────┬──────────────────┘
+           │
+           ↓
+┌─────────────────────────────────┐
+│ Load Initial Data               │
+│ getAllExpenses()                │
+│ getAllCategories()              │
+│ calculateTotals()               │
+└──────────┬──────────────────────┘
+           │
+           ↓
+    ┌──────────────────────┐
+    │  Waiting for User    │
+    └──────────┬───────────┘
+               │
+    ┌──────────┴──────────┬──────────┬──────────┐
+    │                     │          │          │
+    ↓                     ↓          ↓          ↓
+┌────────┐          ┌────────┐  ┌───────┐  ┌──────┐
+│ Add    │          │ Filter │  │ Edit  │  │Export│
+│ Click  │          │ Select │  │ Click │  │Click │
+└───┬────┘          └───┬────┘  └───┬───┘  └──┬───┘
+    │                   │          │         │
+    ↓                   ↓          ↓         ↓
+┌──────────┐       ┌───────────┐ ┌──────┐  ┌─────┐
+│ Dialog   │       │ Show      │ │ Edit │  │ CSV │
+│ Opens    │       │ Filtered  │ │ Dialog  │ Gen │
+└───┬────┘        │ Table     │ └──┬───┘  └──┬──┘
+    │              └───┬────────┘    │       │
+    │                  │              │       │
+    └──────────┬───────┘──────────────┘       │
+               │                              │
+               ↓ (After Any Change)          │
+         ┌──────────────┐                    │
+         │ Refresh Data │                    │
+         └──────┬───────┘                    │
+                │◄───────────────────────────┘
+                │
+                ↓
+         ┌──────────────────────┐
+         │ Update UI            │
+         │ • Table rows         │
+         │ • Analytics          │
+         │ • Categories         │
+         │ • Summary cards      │
+         └──────────┬───────────┘
+                    │
+                    └──────→ Back to Waiting
+```
+
+---
+
+## 🗄️ Database Relationships
+
+```
+Application Layer
+        │
+        ↓
+    ExpenseDAO
+        │
+        ├─→ SELECT * FROM Expense
+        ├─→ INSERT INTO Expense
+        ├─→ UPDATE Expense
+        ├─→ DELETE FROM Expense
+        └─→ Various aggregations
+        │
+        ↓
+    SQLite Database
+        │
+        └─→ Expense Table
+             ├─ id (PK)
+             ├─ amount
+             ├─ category
+             ├─ date
+             ├─ description
+             └─ created_at
+```
+
+---
+
+## 🚀 Application Startup Sequence
+
+```
+1. ExpenseTrackerApp.main()
+   │
+   ├→ print("Welcome...")
+   │
+   ├→ DatabaseConnection.testConnection()
+   │   └→ Load SQLite driver
+   │   └→ Connect to database
+   │
+   ├→ DatabaseConnection.initializeDatabase()
+   │   └→ CREATE TABLE IF NOT EXISTS Expense
+   │   └→ print("Table ready")
+   │
+   ├→ SwingUtilities.invokeLater()
+   │   └→ Create MainDashboard
+   │       └→ initializeUI()
+   │           ├─ createTopPanel()
+   │           ├─ createMiddlePanel()
+   │           └─ createBottomPanel()
+   │       └→ refreshData()
+   │           ├─ ExpenseDAO.getAllExpenses()
+   │           ├─ loadExpensesIntoTable()
+   │           ├─ updateCategoryFilter()
+   │           └─ updateAnalytics()
+   │       └→ setVisible(true)
+   │
+   └→ print("App started successfully")
+      print("Dashboard is open")
+```
+
+---
+
+## 🎨 UI Layout Structure
+
+```
+┌────────────────────────────────────────────────┐
+│ Smart Expense Tracker with Analytics           │ [Title Bar]
+├────────────────────────────────────────────────┤
+│                                                 │
+│  [Add] [Edit] [Delete] [Filter ▼] [Export]     │ [Top Panel]
+│        [◀ Prev] [Month] [Next ▶️]              │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  ┌──────────────────────────┐ ┌──────────────┐ │
+│  │                          │ │ Total: $1000 │ │
+│  │    Expenses Table        │ │              │ │
+│  │  ID Amount Category Date │ │ Monthly: $200│ │
+│  │  1  $50   Food     Jan   │ │              │ │
+│  │  2  $20   Travel   Jan   │ │ Category:    │ │ [Middle Panel]
+│  │  3  $100  Bills    Jan   │ │ Food: $200   │ │
+│  │  4  $30   Shop     Jan   │ │ Travel: $50  │ │
+│  │  5  $50   Health   Jan   │ │ Bills: $300  │ │
+│  │                          │ │ Other: $450  │ │
+│  │                          │ │              │ │
+│  └──────────────────────────┘ └──────────────┘ │
+│                                                 │
+├────────────────────────────────────────────────┤
+│                                                 │
+│  Ready | Database: Connected | Last: 2024-04-12│ [Bottom Panel]
+│                                                 │
+└────────────────────────────────────────────────┘
+```
+
+---
+
+**These diagrams illustrate the complete architecture and data flow of the Smart Expense Tracker application.**
