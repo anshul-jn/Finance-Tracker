@@ -1,6 +1,6 @@
 package com.expensetracker;
 
-import com.expensetracker.ui.MainDashboard;
+import com.expensetracker.ui.MainDashboardV2;
 import com.expensetracker.util.DatabaseConnection;
 import javax.swing.*;
 
@@ -12,9 +12,8 @@ public class ExpenseTrackerApp {
 
     public static void main(String[] args) {
         // Initialize database
-        System.out.println("╔════════════════════════════════════════════════════╗");
-        System.out.println("║   Smart Expense Tracker with Analytics              ║");
-        System.out.println("╚════════════════════════════════════════════════════╝");
+       
+        System.out.println("  Smart Expense Tracker with Analytics              ║");
         System.out.println("\n[*] Initializing application...\n");
 
         // Test database connection and create tables
@@ -32,10 +31,10 @@ public class ExpenseTrackerApp {
         // Launch GUI on Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             try {
-                MainDashboard dashboard = new MainDashboard();
+                MainDashboardV2 dashboard = new MainDashboardV2();
                 dashboard.setVisible(true);
                 System.out.println("\n✓ Application started successfully!");
-                System.out.println("✓ Main Dashboard is now open.\n");
+                System.out.println("✓ Enhanced Dashboard (v2.0) is now open.\n");
             } catch (Exception e) {
                 System.err.println("✗ Error launching application: " + e.getMessage());
                 e.printStackTrace();

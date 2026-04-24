@@ -29,14 +29,14 @@ public class DatabaseConnection {
     }
 
     /**
-     * Initialize the database by creating the Expense table if it doesn't exist.
+     * Initialize the database by creating the Expense and Budget tables if they don't exist.
      */
     public static void initializeDatabase() {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
             // SQL to create Expense table
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS Expense (" +
+            String createExpenseTableSQL = "CREATE TABLE IF NOT EXISTS Expense (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     "amount REAL NOT NULL," +
                     "category TEXT NOT NULL," +
@@ -45,8 +45,23 @@ public class DatabaseConnection {
                     "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                     ");";
             
-            stmt.execute(createTableSQL);
-            System.out.println("✓ Database initialized successfully. Table 'Expense' ready.");
+            stmt.execute(createExpenseTableSQL);
+            System.out.println("✓ Table 'Expense' ready.");
+            
+            // SQL to create Budget table
+            String createBudgetTableSQL = "CREATE TABLE IF NOT EXISTS Budget (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "category TEXT NOT NULL," +
+                    "budget_limit REAL NOT NULL," +
+                    "month TEXT NOT NULL," +
+                    "alert_enabled INTEGER DEFAULT 1," +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                    "UNIQUE(category, month)" +
+                    ");";
+            
+            stmt.execute(createBudgetTableSQL);
+            System.out.println("✓ Table 'Budget' ready.");
+            System.out.println("✓ Database initialized successfully.");
             
         } catch (SQLException e) {
             System.err.println("✗ Error initializing database: " + e.getMessage());

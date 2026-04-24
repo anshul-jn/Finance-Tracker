@@ -14,20 +14,61 @@ import java.util.List;
 public class ExpenseDAO {
 
     /**
+     * Find the next available ID (reuse deleted IDs).
+     * @return The next available ID to use
+     */
+    private int getNextAvailableId() {
+        String sql = "SELECT MAX(id) as maxId FROM Expense";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            int maxId = 0;
+            if (rs.next()) {
+                maxId = rs.getInt("maxId");
+            }
+            
+            // Check for gaps in IDs - reuse the lowest available
+            for (int i = 1; i <= maxId; i++) {
+                String checkSql = "SELECT id FROM Expense WHERE id = ?";
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                    checkStmt.setInt(1, i);
+                    try (ResultSet checkRs = checkStmt.executeQuery()) {
+                        if (!checkRs.next()) {
+                            // ID i is not used, reuse it
+                            return i;
+                        }
+                    }
+                }
+            }
+            
+            // No gaps found, use next ID
+            return maxId + 1;
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting next available ID: " + e.getMessage());
+            return 1;
+        }
+    }
+
+    /**
      * Add a new expense to the database.
      * @param expense The expense object to add
      * @return true if successful, false otherwise
      */
     public boolean addExpense(Expense expense) {
-        String sql = "INSERT INTO Expense (amount, category, date, description) VALUES (?, ?, ?, ?)";
+        int nextId = getNextAvailableId();
+        String sql = "INSERT INTO Expense (id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            pstmt.setDouble(1, expense.getAmount());
-            pstmt.setString(2, expense.getCategory());
-            pstmt.setString(3, expense.getDate().toString());
-            pstmt.setString(4, expense.getDescription());
+            pstmt.setInt(1, nextId);
+            pstmt.setDouble(2, expense.getAmount());
+            pstmt.setString(3, expense.getCategory());
+            pstmt.setString(4, expense.getDate().toString());
+            pstmt.setString(5, expense.getDescription());
             
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
